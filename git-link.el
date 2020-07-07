@@ -173,7 +173,8 @@
     ("bitbucket" git-link-bitbucket)
     ("gitorious" git-link-gitorious)
     ("gitlab" git-link-gitlab)
-    ("visualstudio\\|azure" git-link-azure))
+    ("visualstudio\\|azure" git-link-azure)
+    ("phabricator" git-link-phabricator))
   "Alist of host names and functions creating file links for those.
 Each element looks like (REGEXP FUNCTION) where REGEXP is used to
 match the remote's host name and FUNCTION is used to generate a link
@@ -354,6 +355,13 @@ return (FILENAME . REVISION) otherwise nil."
                     "\\1/_git/"
                     path)))
 
+      ;; Handle Phabricator URLs
+      ;; TODO: A way to mark these as Phabricator
+      (when (string-match "phab" host)
+        ;; TODO: string join requires 24.4, find a way to make this
+        ;; backward-compatible if possible
+        (setq path (string-join (nbutlast (split-string path "/") 1) "/"))
+        )
 
       (list host path))))
 
@@ -442,6 +450,18 @@ return (FILENAME . REVISION) otherwise nil."
       (concat "G" (if branch "B" "C") (or branch commit))
       start
       (or end start)))
+(defun git-link-phabricator (hostname dirname filename branch commit start end)
+  (format "https://%s/%s/browse/%s/%s"
+	  hostname
+          dirname
+	  (or branch commit)
+          (concat filename
+                  (when start
+                    (concat "$"
+                            (if end
+                                (format "%s-%s" start end)
+                              (format "%s" start)))))))
+
 
 (defun git-link-commit-github (hostname dirname commit)
   (format "https://%s/%s/commit/%s"
