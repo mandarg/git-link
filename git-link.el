@@ -206,7 +206,8 @@ See its docs."
     ("gitlab" git-link-gitlab)
     ("git\\.\\(sv\\|savannah\\)\\.gnu\\.org" git-link-savannah)
     ("visualstudio\\|azure" git-link-azure)
-    ("sourcegraph" git-link-sourcegraph))
+    ("sourcegraph" git-link-sourcegraph)
+    ("phabricator" git-link-phabricator))
   "Alist of host names and functions creating file links for those.
 Each element looks like (REGEXP FUNCTION) where REGEXP is used to
 match the remote's host name and FUNCTION is used to generate a link
@@ -427,6 +428,14 @@ return (FILENAME . REVISION) otherwise nil."
          ((string-match "\\`srv/git/" path)
           (setq path (substring path 8)))))
 
+      ;; Handle Phabricator URLs
+      ;; TODO: A way to mark these as Phabricator
+      (when (string-match "phab" host)
+        ;; TODO: string join requires 24.4, find a way to make this
+        ;; backward-compatible if possible
+        (setq path (string-join (nbutlast (split-string path "/") 1) "/"))
+        )
+
       (list host path))))
 
 (defun git-link--using-git-timemachine ()
@@ -539,6 +548,17 @@ return (FILENAME . REVISION) otherwise nil."
                                 (format "L%s-%s" start end)
                               (format "L%s" start)))))))
 
+(defun git-link-phabricator (hostname dirname filename branch commit start end)
+  (format "https://%s/%s/browse/%s;%s%s"
+	  hostname
+          dirname
+          filename
+          (substring commit 0 12) ;; match the hash Phab uses
+          (when start
+            (concat "$"
+                    (if end
+                        (format "%s-%s" start end)
+                      (format "%s" start))))))
 
 (defun git-link-commit-github (hostname dirname commit)
   (format "https://%s/%s/commit/%s"
